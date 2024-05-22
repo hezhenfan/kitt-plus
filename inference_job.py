@@ -10,10 +10,14 @@ from attr import define
 from livekit import agents, rtc
 from livekit.agents.llm import ChatContext, ChatMessage, ChatRole
 from livekit.plugins.elevenlabs import TTS
-from livekit.plugins.openai import LLM
+# from livekit.plugins.openai import LLM
+from openai_plugins.llm import LLM
 
 from dotenv import load_dotenv
 load_dotenv()
+
+logger = logging.getLogger("kitt plus.inference-job")
+logging.basicConfig(encoding='utf-8')
 
 API_BASE_URL_V1 = "wss://api.elevenlabs.io/v1"
 api_key = "281da804bb1e5fc87c96395d16306997"
