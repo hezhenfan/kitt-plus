@@ -12,21 +12,30 @@ from livekit.agents.llm import ChatContext, ChatMessage, ChatRole
 from livekit.plugins.elevenlabs import TTS
 from livekit.plugins.openai import LLM
 
+from dotenv import load_dotenv
+load_dotenv()
+
+API_BASE_URL_V1 = "wss://api.elevenlabs.io/v1"
+api_key = "281da804bb1e5fc87c96395d16306997"
+
 
 class InferenceJob:
     def __init__(
-        self,
-        transcription: str,
-        audio_source: rtc.AudioSource,
-        chat_history: List[ChatMessage],
-        force_text_response: str | None = None,
+            self,
+            transcription: str,
+            audio_source: rtc.AudioSource,
+            chat_history: List[ChatMessage],
+            force_text_response: str | None = None,
     ):
         self._id = uuid.uuid4()
         self._audio_source = audio_source
         self._transcription = transcription
         self._current_response = ""
         self._chat_history = chat_history
-        self._tts = TTS(model_id="eleven_turbo_v2")
+        self._tts = TTS(
+            base_url=API_BASE_URL_V1,
+            api_key=api_key,
+            model_id="eleven_turbo_v2")
         self._tts_stream = self._tts.stream()
         self._llm = LLM()
         self._run_task = asyncio.create_task(self._run())
@@ -134,7 +143,7 @@ class InferenceJob:
 
         chat_context = ChatContext(
             messages=self._chat_history
-            + [ChatMessage(role=ChatRole.USER, text=self.transcription)]
+                     + [ChatMessage(role=ChatRole.USER, text=self.transcription)]
         )
         async for chunk in await self._llm.chat(history=chat_context):
             delta = chunk.choices[0].delta.content
