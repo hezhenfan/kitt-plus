@@ -297,6 +297,8 @@ class SynthesizeStream(tts.SynthesizeStream):
             jsonMessage: Dict[str, Any] = json.loads(str(msg.data))
             if jsonMessage.get("audio"):
                 data = base64.b64decode(jsonMessage["audio"])
+                with open('test_tts.mp3', 'wb') as f:
+                    f.write(data)
                 audio_frame = rtc.AudioFrame(
                     data=data,
                     sample_rate=self._config.sample_rate,

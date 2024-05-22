@@ -144,7 +144,8 @@ class InferenceJob:
             self._tts_stream.push_text(self._force_text_response)
             self.current_response = self._force_text_response
             self.finished_generating = True
-            await self._tts_stream.flush()
+            # await self._tts_stream.flush()
+            self._tts_stream.push_text('')
             return
 
         chat_context = ChatContext(
@@ -158,7 +159,8 @@ class InferenceJob:
             self._tts_stream.push_text(delta)
             self.current_response += delta
         self.finished_generating = True
-        await self._tts_stream.flush()
+        # await self._tts_stream.flush()
+        self._tts_stream.push_text('')
 
     async def _tts_task(self):
         async for event in self._tts_stream:
