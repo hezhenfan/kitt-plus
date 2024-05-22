@@ -21,7 +21,7 @@ load_dotenv()
 logger = logging.getLogger("kitt plus.inference-job")
 logging.basicConfig(encoding='utf-8')
 
-API_BASE_URL_V1 = "https://api.elevenlabs.io/v1"
+TTS_BASE_URL_V1 = os.environ.get("TTS_BASE_URL_V1")
 api_key = os.environ.get("ELEVEN_API_KEY")
 
 
@@ -39,7 +39,7 @@ class InferenceJob:
         self._current_response = ""
         self._chat_history = chat_history
         self._tts = TTS(
-            base_url=API_BASE_URL_V1,
+            base_url=TTS_BASE_URL_V1,
             api_key=api_key,
             model_id="eleven_turbo_v2")
         self._tts_stream = self._tts.stream()
@@ -144,7 +144,7 @@ class InferenceJob:
             self._tts_stream.push_text(self._force_text_response)
             self.current_response = self._force_text_response
             self.finished_generating = True
-            await self._tts_stream._flush_if_needed()
+            await self._tts_stream.flush()
             return
 
         chat_context = ChatContext(
@@ -158,7 +158,7 @@ class InferenceJob:
             self._tts_stream.push_text(delta)
             self.current_response += delta
         self.finished_generating = True
-        await self._tts_stream._flush_if_needed()
+        await self._tts_stream.flush()
 
     async def _tts_task(self):
         async for event in self._tts_stream:
