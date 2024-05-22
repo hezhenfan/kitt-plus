@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import uuid
 from enum import Enum
 from typing import List
@@ -19,8 +20,8 @@ load_dotenv()
 logger = logging.getLogger("kitt plus.inference-job")
 logging.basicConfig(encoding='utf-8')
 
-API_BASE_URL_V1 = "wss://api.elevenlabs.io/v1"
-api_key = "281da804bb1e5fc87c96395d16306997"
+API_BASE_URL_V1 = "https://api.elevenlabs.io/v1"
+api_key = os.environ.get("ELEVEN_API_KEY")
 
 
 class InferenceJob:
@@ -142,7 +143,7 @@ class InferenceJob:
             self._tts_stream.push_text(self._force_text_response)
             self.current_response = self._force_text_response
             self.finished_generating = True
-            await self._tts_stream.flush()
+            await self._tts_stream._flush_if_needed()
             return
 
         chat_context = ChatContext(
@@ -156,7 +157,7 @@ class InferenceJob:
             self._tts_stream.push_text(delta)
             self.current_response += delta
         self.finished_generating = True
-        await self._tts_stream.flush()
+        await self._tts_stream._flush_if_needed()
 
     async def _tts_task(self):
         async for event in self._tts_stream:
