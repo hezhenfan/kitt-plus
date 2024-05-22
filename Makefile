@@ -1,6 +1,8 @@
-.PHONY: start
+.PHONY: agent
 
 livekit-server:
+	@echo "Killing livekit server listening on port 7890..."
+	@-pkill -f 'livekit-server' || true
 	nohup livekit-server --dev &
 
 agent: livekit-server
