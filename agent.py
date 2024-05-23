@@ -17,6 +17,8 @@ from state_manager import StateManager
 from dotenv import load_dotenv
 load_dotenv()
 
+from consts import mingchao
+
 PROMPT = "You are KITT, a friendly voice assistant powered by LiveKit.  \
           Conversation should be personable, and be sure to ask follow up questions. \
           If your response is a question, please append a question mark symbol to the end of it.\
@@ -26,7 +28,7 @@ INTRO = "Hello, I am KITT, a friendly voice assistant powered by LiveKit Agents.
         Feel free to ask me anything — I'm here to help! Just start talking or type in the chat."
 SIP_INTRO = "Hello, I am KITT, a friendly voice assistant powered by LiveKit Agents. \
              Feel free to ask me anything — I'm here to help! Just start talking."
-SIP2_INTRO = "Hello, I am KITT plus."
+SIP_INTRO_ZH = "你好, 我是你的虚拟老师."
 
 logger = logging.getLogger("kitt plus.deepgram-video")
 logging.basicConfig(encoding='utf-8')
@@ -37,6 +39,7 @@ async def entrypoint(job: JobContext):
     source = rtc.AudioSource(24000, 1)
     video_source = rtc.VideoSource(640, 480)
     track = rtc.LocalAudioTrack.create_audio_track("agent-mic", source)
+    video_track = rtc.LocalVideoTrack.create_video_track("agent-camera", video_source)
     options = rtc.TrackPublishOptions()
     options.source = rtc.TrackSource.SOURCE_MICROPHONE
 
@@ -54,7 +57,6 @@ async def entrypoint(job: JobContext):
     video_stream_future = asyncio.Future[rtc.VideoStream]()
 
     def on_track_subscribed(track: rtc.Track, *_):
-        logger.warning(f'轨类型： {track.kind}')
         if track.kind == rtc.TrackKind.KIND_AUDIO:
             audio_stream_future.set_result(rtc.AudioStream(track))
             logger.warning(f'音频订阅')
@@ -63,7 +65,7 @@ async def entrypoint(job: JobContext):
             logger.warning(f'视频订阅')
 
     def on_data(dp: rtc.DataPacket):
-        nonlocal current_transcription, base64_images
+        nonlocal current_transcription, base64_images, video_stream
         print("Data received: ", dp)
         # Ignore if the agent is speaking
         if state.agent_speaking:
@@ -73,6 +75,8 @@ async def entrypoint(job: JobContext):
         payload = json.loads(dp.data)
         message = payload["message"]
         current_transcription = message
+        video_stream_task()
+        base64_images = [mingchao]
         logger.warning(f'on data 开始调用infer：{payload}')
         asyncio.create_task(start_new_inference())
 
@@ -94,6 +98,7 @@ async def entrypoint(job: JobContext):
 
     # Publish agent mic after waiting for user audio (simple way to avoid subscribing to self)
     await job.room.local_participant.publish_track(track, options)
+    await job.room.local_participant.publish_track(video_track, options)
 
     async def start_new_inference(force_text: str | None = None):
         nonlocal current_transcription
@@ -146,7 +151,7 @@ async def entrypoint(job: JobContext):
 
     async def video_stream_task():
         async for video_frame_event in video_stream:
-            stt_stream.push_video_frame(video_frame_event.frame)
+            logger.warning(f'视频帧： {video_frame_event.frame}')
 
     async def stt_stream_task():
         nonlocal current_transcription, inference_task
@@ -169,7 +174,7 @@ async def entrypoint(job: JobContext):
 
     try:
         sip = job.room.name.startswith("sip")
-        intro_text = SIP_INTRO if sip else SIP2_INTRO
+        intro_text = SIP_INTRO if sip else SIP_INTRO_ZH
         inference_task = asyncio.create_task(start_new_inference(force_text=intro_text))
         async with asyncio.TaskGroup() as tg:
             tg.create_task(audio_stream_task())

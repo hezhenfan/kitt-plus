@@ -6,7 +6,7 @@ livekit-server:
 	nohup livekit-server --dev &
 
 agent: livekit-server
-	python agent.py start
+	python agent.py start --log-level=INFO
 
 .PHONY: format
 format:
