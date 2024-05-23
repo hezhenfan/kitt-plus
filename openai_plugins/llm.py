@@ -7,7 +7,7 @@ import os
 from typing import Any, Dict, MutableSet
 
 from attrs import define
-from livekit.agents import llm
+from livekit_llm import llm
 
 import openai
 
