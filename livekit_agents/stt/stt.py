@@ -37,6 +37,7 @@ class SpeechData:
 class SpeechEvent:
     type: SpeechEventType
     alternatives: List[SpeechData] = field(default_factory=list)
+    base64_images: List[str] = field(default_factory=list)
 
 
 class STT(ABC):

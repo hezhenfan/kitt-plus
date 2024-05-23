@@ -28,10 +28,13 @@ from urllib.parse import urlencode
 
 import aiohttp
 from livekit import rtc
-from livekit.agents import stt
-from livekit.agents.utils import AudioBuffer, merge_frames
+from livekit_agents.stt import stt
+from livekit_agents.utils import AudioBuffer, merge_frames
 
 from .models import DeepgramLanguages, DeepgramModels
+
+logger = logging.getLogger("kitt plus.deepgram-video")
+logging.basicConfig(encoding='utf-8')
 
 
 @dataclass
@@ -171,7 +174,7 @@ class SpeechStream(stt.SpeechStream):
         self._closed = False
         self._main_task = asyncio.create_task(self._run(max_retry))
 
-        self._video_frames = List[rtc.VideoFrame]
+        self._base64_images = List[str]
 
         # keep a list of final transcripts to combine them inside the END_OF_SPEECH event
         self._final_events: List[stt.SpeechEvent] = []
@@ -281,10 +284,11 @@ class SpeechStream(stt.SpeechStream):
             # forward inputs to deepgram
             # if we receive a close message, signal it to deepgram and break.
             # the recv task will then make sure to process the remaining audio and stop
-            self._video_frames = []
+            self._base64_images = []
             while True:
                 data = await self._queue.get()
                 video_frame = await self._video_queue.get()
+                logger.warning(f"获得 video frame: {video_frame}")
                 self._queue.task_done()
 
                 if isinstance(data, rtc.AudioFrame):
@@ -297,7 +301,7 @@ class SpeechStream(stt.SpeechStream):
                 elif data == SpeechStream._CLOSE_MSG:
                     closing_ws = True
                     await ws.send_str(data)  # tell deepgram we are done with inputs
-                    self._video_frames.append(video_frame)
+                    self._base64_images.append(video_frame)
                     break
 
         async def recv_task():
@@ -402,6 +406,7 @@ class SpeechStream(stt.SpeechStream):
                 final_event = stt.SpeechEvent(
                     type=stt.SpeechEventType.FINAL_TRANSCRIPT,
                     alternatives=alts,
+                    base64_images=self._video_frames,
                 )
                 self._final_events.append(final_event)
                 self._event_queue.put_nowait(final_event)
