@@ -30,11 +30,13 @@ class InferenceJob:
             self,
             transcription: str,
             audio_source: rtc.AudioSource,
+            video_source: rtc.VideoSource,
             chat_history: List[ChatMessage],
             force_text_response: str | None = None,
     ):
         self._id = uuid.uuid4()
         self._audio_source = audio_source
+        self._video_source = video_source
         self._transcription = transcription
         self._current_response = ""
         self._chat_history = chat_history
@@ -147,8 +149,7 @@ class InferenceJob:
             await self._tts_stream.flush()
             return
         chat_context = ChatContext(
-            messages=self._chat_history
-                     + [ChatMessage(role=ChatRole.USER, text=self.transcription)]
+            messages=self._chat_history + [ChatMessage(role=ChatRole.USER, text=self.transcription)]
         )
         async for chunk in await self._llm.chat(history=chat_context):
             delta = chunk.choices[0].delta.content

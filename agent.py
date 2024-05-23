@@ -31,6 +31,7 @@ SIP2_INTRO = "Hello, I am KITT plus."
 async def entrypoint(job: JobContext):
     # LiveKit Entities
     source = rtc.AudioSource(24000, 1)
+    video_source = rtc.VideoSource(640, 480)
     track = rtc.LocalAudioTrack.create_audio_track("agent-mic", source)
     options = rtc.TrackPublishOptions()
     options.source = rtc.TrackSource.SOURCE_MICROPHONE
@@ -45,10 +46,13 @@ async def entrypoint(job: JobContext):
     current_transcription = ""
 
     audio_stream_future = asyncio.Future[rtc.AudioStream]()
+    video_stream_future = asyncio.Future[rtc.VideoStream]()
 
     def on_track_subscribed(track: rtc.Track, *_):
         if track.kind == rtc.TrackKind.KIND_AUDIO:
             audio_stream_future.set_result(rtc.AudioStream(track))
+        if track.kind == rtc.TrackKind.KIND_VIDEO:
+            video_stream_future.set_result(rtc.VideoStream(track))
 
     def on_data(dp: rtc.DataPacket):
         nonlocal current_transcription
@@ -70,12 +74,14 @@ async def entrypoint(job: JobContext):
             if track_pub.track is None:
                 continue
             audio_stream_future.set_result(rtc.AudioStream(track_pub.track))
+            video_stream_future.set_result(rtc.VideoStream(track_pub.track))
 
     job.room.on("track_subscribed", on_track_subscribed)
     job.room.on("data_received", on_data)
 
     # Wait for user audio
     audio_stream = await audio_stream_future
+    video_stream = await video_stream_future
 
     # Publish agent mic after waiting for user audio (simple way to avoid subscribing to self)
     await job.room.local_participant.publish_track(track, options)
@@ -87,6 +93,7 @@ async def entrypoint(job: JobContext):
         job = InferenceJob(
             transcription=current_transcription,
             audio_source=source,
+            video_source=video_source,
             chat_history=state.chat_history,
             force_text_response=force_text,
         )
