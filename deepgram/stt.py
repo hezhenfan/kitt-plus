@@ -166,9 +166,12 @@ class SpeechStream(stt.SpeechStream):
 
         self._session = aiohttp.ClientSession()
         self._queue = asyncio.Queue[rtc.AudioFrame | str]()
+        self._video_queue = asyncio.Queue[rtc.VideoFrame | str]()
         self._event_queue = asyncio.Queue[stt.SpeechEvent | None]()
         self._closed = False
         self._main_task = asyncio.create_task(self._run(max_retry))
+
+        self._video_frames = List[rtc.VideoFrame]
 
         # keep a list of final transcripts to combine them inside the END_OF_SPEECH event
         self._final_events: List[stt.SpeechEvent] = []
@@ -184,6 +187,12 @@ class SpeechStream(stt.SpeechStream):
             raise ValueError("cannot push frame to closed stream")
 
         self._queue.put_nowait(frame)
+
+    def push_video_frame(self, frame: rtc.VideoFrame) -> None:
+        if self._closed:
+            raise ValueError("cannot push frame to closed stream")
+
+        self._video_queue.put_nowait(frame)
 
     async def aclose(self, wait: bool = True) -> None:
         self._closed = True
@@ -272,8 +281,10 @@ class SpeechStream(stt.SpeechStream):
             # forward inputs to deepgram
             # if we receive a close message, signal it to deepgram and break.
             # the recv task will then make sure to process the remaining audio and stop
+            self._video_frames = []
             while True:
                 data = await self._queue.get()
+                video_frame = await self._video_queue.get()
                 self._queue.task_done()
 
                 if isinstance(data, rtc.AudioFrame):
@@ -286,6 +297,7 @@ class SpeechStream(stt.SpeechStream):
                 elif data == SpeechStream._CLOSE_MSG:
                     closing_ws = True
                     await ws.send_str(data)  # tell deepgram we are done with inputs
+                    self._video_frames.append(video_frame)
                     break
 
         async def recv_task():

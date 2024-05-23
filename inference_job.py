@@ -9,10 +9,8 @@ from typing import List
 
 from attr import define
 from livekit import agents, rtc
-from openai_plugins.livekit_llm.llm import ChatContext, ChatMessage, ChatRole
-# from livekit.plugins.elevenlabs import TTS
+from livekit_agents.llm.llm import ChatContext, ChatMessage, ChatRole
 from tts import TTS
-# from livekit.plugins.openai import LLM
 from openai_plugins.llm import LLM
 
 from dotenv import load_dotenv

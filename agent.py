@@ -10,7 +10,7 @@ from livekit.agents import (
     WorkerOptions,
     cli,
 )
-from livekit.plugins.deepgram import STT
+from deepgram import STT
 from state_manager import StateManager
 
 from dotenv import load_dotenv
@@ -135,6 +135,10 @@ async def entrypoint(job: JobContext):
     async def audio_stream_task():
         async for audio_frame_event in audio_stream:
             stt_stream.push_frame(audio_frame_event.frame)
+
+    async def video_stream_task():
+        async for video_frame_event in video_stream:
+            stt_stream.push_video_frame(video_frame_event.frame)
 
     async def stt_stream_task():
         nonlocal current_transcription, inference_task
