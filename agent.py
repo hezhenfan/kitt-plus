@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from builtins import BaseExceptionGroup
 
 from inference_job import EventType, InferenceJob
@@ -27,6 +28,9 @@ SIP_INTRO = "Hello, I am KITT, a friendly voice assistant powered by LiveKit Age
              Feel free to ask me anything — I'm here to help! Just start talking."
 SIP2_INTRO = "Hello, I am KITT plus."
 
+logger = logging.getLogger("kitt plus.deepgram-video")
+logging.basicConfig(encoding='utf-8')
+
 
 async def entrypoint(job: JobContext):
     # LiveKit Entities
@@ -50,13 +54,16 @@ async def entrypoint(job: JobContext):
     video_stream_future = asyncio.Future[rtc.VideoStream]()
 
     def on_track_subscribed(track: rtc.Track, *_):
+        logger.warning(f'轨类型： {track.kind}')
         if track.kind == rtc.TrackKind.KIND_AUDIO:
             audio_stream_future.set_result(rtc.AudioStream(track))
+            logger.warning(f'音频订阅')
         if track.kind == rtc.TrackKind.KIND_VIDEO:
             video_stream_future.set_result(rtc.VideoStream(track))
+            logger.warning(f'视频订阅')
 
     def on_data(dp: rtc.DataPacket):
-        nonlocal current_transcription
+        nonlocal current_transcription, base64_images
         print("Data received: ", dp)
         # Ignore if the agent is speaking
         if state.agent_speaking:
@@ -66,6 +73,7 @@ async def entrypoint(job: JobContext):
         payload = json.loads(dp.data)
         message = payload["message"]
         current_transcription = message
+        logger.warning(f'on data 开始调用infer：{payload}')
         asyncio.create_task(start_new_inference())
 
     for participant in job.room.participants.values():
@@ -174,7 +182,7 @@ async def entrypoint(job: JobContext):
 
 
 async def request_fnc(req: JobRequest) -> None:
-    await req.accept(entrypoint, auto_subscribe=agents.AutoSubscribe.AUDIO_ONLY)
+    await req.accept(entrypoint, auto_subscribe=agents.AutoSubscribe.SUBSCRIBE_ALL)
 
 
 if __name__ == "__main__":
