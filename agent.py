@@ -1,5 +1,6 @@
 import asyncio
 import json
+from builtins import BaseExceptionGroup
 
 from inference_job import EventType, InferenceJob
 from livekit import agents, rtc
@@ -24,6 +25,7 @@ INTRO = "Hello, I am KITT, a friendly voice assistant powered by LiveKit Agents.
         Feel free to ask me anything — I'm here to help! Just start talking or type in the chat."
 SIP_INTRO = "Hello, I am KITT, a friendly voice assistant powered by LiveKit Agents. \
              Feel free to ask me anything — I'm here to help! Just start talking."
+SIP2_INTRO = "Hello, I am KITT plus."
 
 
 async def entrypoint(job: JobContext):
@@ -144,7 +146,7 @@ async def entrypoint(job: JobContext):
 
     try:
         sip = job.room.name.startswith("sip")
-        intro_text = SIP_INTRO if sip else INTRO
+        intro_text = SIP_INTRO if sip else SIP2_INTRO
         inference_task = asyncio.create_task(start_new_inference(force_text=intro_text))
         async with asyncio.TaskGroup() as tg:
             tg.create_task(audio_stream_task())

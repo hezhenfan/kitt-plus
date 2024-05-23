@@ -146,7 +146,6 @@ class InferenceJob:
             self.finished_generating = True
             await self._tts_stream.flush()
             return
-
         chat_context = ChatContext(
             messages=self._chat_history
                      + [ChatMessage(role=ChatRole.USER, text=self.transcription)]
