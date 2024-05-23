@@ -34,7 +34,7 @@ async def entrypoint(job: JobContext):
     options.source = rtc.TrackSource.SOURCE_MICROPHONE
 
     # Plugins
-    stt = STT()
+    stt = STT(language='zh-CN')
     stt_stream = stt.stream()
 
     # Agent state

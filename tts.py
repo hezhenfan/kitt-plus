@@ -297,8 +297,6 @@ class SynthesizeStream(tts.SynthesizeStream):
             jsonMessage: Dict[str, Any] = json.loads(str(msg.data))
             if jsonMessage.get("audio"):
                 data = base64.b64decode(jsonMessage["audio"])
-                with open('test_tts.mp3', 'wb') as f:
-                    f.write(data)
                 audio_frame = rtc.AudioFrame(
                     data=data,
                     sample_rate=self._config.sample_rate,
@@ -320,7 +318,7 @@ class SynthesizeStream(tts.SynthesizeStream):
         self._queue.put_nowait(self._text + " ")
         self._text = ""
         self._queue.put_nowait(STREAM_EOS)
-        await self._queue.join()
+        # await self._queue.join()
 
     async def aclose(self, wait=False) -> None:
         if wait:
