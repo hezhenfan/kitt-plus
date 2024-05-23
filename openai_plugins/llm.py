@@ -24,7 +24,7 @@ class LLM(llm.LLM):
     def __init__(
         self,
         *,
-        model: str | ChatModels = "gpt-3.5-turbo",
+        model: str | ChatModels = "gpt-4o",
         client: openai.AsyncClient | None = None,
     ) -> None:
         self._opts = LLMOptions(model=model)
@@ -214,7 +214,7 @@ def to_openai_ctx(chat_ctx: llm.ChatContext) -> list:
     return [
         {
             "role": msg.role.value,
-            "content": msg.text,
+            "content": msg.content,
         }
         for msg in chat_ctx.messages
     ]

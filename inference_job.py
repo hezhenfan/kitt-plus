@@ -9,7 +9,7 @@ from typing import List
 
 from attr import define
 from livekit import agents, rtc
-from livekit.agents.llm import ChatContext, ChatMessage, ChatRole
+from openai_plugins.livekit_llm.llm import ChatContext, ChatMessage, ChatRole
 # from livekit.plugins.elevenlabs import TTS
 from tts import TTS
 # from livekit.plugins.openai import LLM
@@ -29,6 +29,7 @@ class InferenceJob:
     def __init__(
             self,
             transcription: str,
+            base64_images: list[str],
             audio_source: rtc.AudioSource,
             video_source: rtc.VideoSource,
             chat_history: List[ChatMessage],
@@ -38,6 +39,7 @@ class InferenceJob:
         self._audio_source = audio_source
         self._video_source = video_source
         self._transcription = transcription
+        self._base64_images = base64_images
         self._current_response = ""
         self._chat_history = chat_history
         self._tts = TTS(
@@ -148,8 +150,15 @@ class InferenceJob:
             self.finished_generating = True
             await self._tts_stream.flush()
             return
+
+        content = [
+            {"type": "text", "text": self.transcription}
+        ]
+        for base64_image in self._base64_images:
+            content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}})
+
         chat_context = ChatContext(
-            messages=self._chat_history + [ChatMessage(role=ChatRole.USER, text=self.transcription)]
+            messages=[ChatMessage(role=ChatRole.USER, content=content)]
         )
         async for chunk in await self._llm.chat(history=chat_context):
             delta = chunk.choices[0].delta.content

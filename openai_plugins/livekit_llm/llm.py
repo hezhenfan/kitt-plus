@@ -16,7 +16,7 @@ class ChatRole(enum.Enum):
 @define
 class ChatMessage:
     role: ChatRole
-    text: str
+    content: list[dict] = []
 
 
 @define

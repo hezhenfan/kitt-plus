@@ -44,6 +44,7 @@ async def entrypoint(job: JobContext):
     state = StateManager(job.room, PROMPT)
     inference_task: asyncio.Task | None = None
     current_transcription = ""
+    base64_images = []
 
     audio_stream_future = asyncio.Future[rtc.AudioStream]()
     video_stream_future = asyncio.Future[rtc.VideoStream]()
@@ -88,10 +89,12 @@ async def entrypoint(job: JobContext):
 
     async def start_new_inference(force_text: str | None = None):
         nonlocal current_transcription
+        nonlocal base64_images
 
         state.agent_thinking = True
         job = InferenceJob(
             transcription=current_transcription,
+            base64_images=base64_images,
             audio_source=source,
             video_source=video_source,
             chat_history=state.chat_history,
@@ -125,6 +128,7 @@ async def entrypoint(job: JobContext):
                             state.commit_user_transcription(job.transcription)
                         commit_agent_text_if_needed()
                         current_transcription = ""
+                        base64_images = []
         except asyncio.CancelledError:
             await job.acancel()
 
